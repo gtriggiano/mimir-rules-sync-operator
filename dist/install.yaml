@@ -291,7 +291,7 @@ kind: Deployment
 metadata:
   labels:
     app.kubernetes.io/name: mimir-rules-sync
-  name: mimir-rules-sync-controller-manager
+  name: mimir-rules-sync-manager
   namespace: mimir-rules-sync-system
 spec:
   replicas: 1
