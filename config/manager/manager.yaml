@@ -17,7 +17,7 @@ spec:
       labels:
         app.kubernetes.io/name: mimir-rules-sync
     spec:
-      serviceAccountName: controller-manager
+      serviceAccountName: manager
       terminationGracePeriodSeconds: 10
       affinity:
         nodeAffinity:

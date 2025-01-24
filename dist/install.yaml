@@ -139,7 +139,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: mimir-rules-sync
-  name: mimir-rules-sync-controller-manager
+  name: mimir-rules-sync-manager
   namespace: mimir-rules-sync-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -251,7 +251,7 @@ roleRef:
   name: mimir-rules-sync-leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: mimir-rules-sync-controller-manager
+  name: mimir-rules-sync-manager
   namespace: mimir-rules-sync-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -267,7 +267,7 @@ roleRef:
   name: mimir-rules-sync-manager-role
 subjects:
 - kind: ServiceAccount
-  name: mimir-rules-sync-controller-manager
+  name: mimir-rules-sync-manager
   namespace: mimir-rules-sync-system
 ---
 apiVersion: v1
@@ -361,5 +361,5 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-      serviceAccountName: mimir-rules-sync-controller-manager
+      serviceAccountName: mimir-rules-sync-manager
       terminationGracePeriodSeconds: 10
