@@ -1,0 +1,54 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - mimir-rules-sync.creativecoding.it
+  resources:
+  - prometheusrulesyncs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - mimir-rules-sync.creativecoding.it
+  resources:
+  - prometheusrulesyncs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - mimir-rules-sync.creativecoding.it
+  resources:
+  - prometheusrulesyncs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - prometheusrules
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - prometheusrules/finalizers
+  verbs:
+  - update

@@ -1,0 +1,8 @@
+namespace: mimir-rules-sync-system
+namePrefix: mimir-rules-sync-
+
+resources:
+- ../crd
+- ../rbac
+- ../manager
+- metrics_service.yaml
