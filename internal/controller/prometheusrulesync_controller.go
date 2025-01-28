@@ -92,10 +92,10 @@ func (r *PrometheusRuleSyncReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 
 		// Get the RuleGroups already present in Mimir
-		actualMimirRuleGroups, err := r.MimirRulerClient.GetNamespaceRuleGroups(mimirTenant, mimirNamespace)
+		actualMimirRuleGroups, out, err := r.MimirRulerClient.GetNamespaceRuleGroups(mimirTenant, mimirNamespace)
 		if err != nil {
-			log.Error(err, "Could not retrieve the RuleGroups already present in Mimir namespace %s", mimirNamespace, "tenant", mimirTenant, "namespace", prometheusRuleSync.Namespace, "name", prometheusRuleSync.Name)
-			r.Recorder.Eventf(prometheusRuleSync, "Warning", "GetNamespaceRuleGroupsFailed", "Failed to get RuleGroups from Mimir namespace %s: %s", mimirNamespace, err.Error())
+			log.Error(err, fmt.Sprintf("Could not retrieve the RuleGroups already present in Mimir namespace %s", mimirNamespace), "tenant", mimirTenant, "namespace", prometheusRuleSync.Namespace, "name", prometheusRuleSync.Name)
+			r.Recorder.Eventf(prometheusRuleSync, "Warning", "GetNamespaceRuleGroupsFailed", "Failed to get RuleGroups from Mimir namespace \"%s\"\n%s\n%s", mimirNamespace, err.Error(), out)
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
 
@@ -111,14 +111,14 @@ func (r *PrometheusRuleSyncReconciler) Reconcile(ctx context.Context, req ctrl.R
 				actualMimirRuleGroup, found := actualMimirRuleGroupsByName[ruleGroupName]
 
 				if !found || !reflect.DeepEqual(actualMimirRuleGroup, mimirRuleGroup) {
-					if _, err := r.MimirRulerClient.SetRuleGroup(mimirTenant, mimirNamespace, &mimirRuleGroup); err != nil {
+					if out, err := r.MimirRulerClient.SetRuleGroup(mimirTenant, mimirNamespace, &mimirRuleGroup); err != nil {
 						unsuccessfulSetRuleGroupsByName[mimirRuleGroup.Name] = err.Error()
 						log.Error(err, "Failed to set rule in Mimir", "tenant", mimirTenant, "namespace", prometheusRuleSync.Namespace, "name", prometheusRuleSync.Name)
-						r.Recorder.Eventf(prometheusRuleSync, "Warning", "SetRuleGroupFailed", "Failed to set RuleGroup %s in Mimir namespace %s: %s", mimirRuleGroup.Name, mimirNamespace, err.Error())
+						r.Recorder.Eventf(prometheusRuleSync, "Warning", "SetRuleGroupFailed", "Failed to set RuleGroup %s in Mimir namespace \"%s\"\n%s\n%s", mimirRuleGroup.Name, mimirNamespace, err.Error(), out)
 					} else {
 						successfulSetRuleGroupsByName[mimirRuleGroup.Name] = fmt.Sprintf("Rule was set in Mimir for tenant %s", mimirTenant)
 						log.Info("Rule was set in Mimir", "tenant", mimirTenant, "namespace", prometheusRuleSync.Namespace, "name", prometheusRuleSync.Name)
-						r.Recorder.Eventf(prometheusRuleSync, "Normal", "SetRuleGroupSuccess", "RuleGroup %s was set in Mimir namespace %s", mimirRuleGroup.Name, mimirNamespace)
+						r.Recorder.Eventf(prometheusRuleSync, "Normal", "SetRuleGroupSuccess", "RuleGroup %s was set in Mimir namespace \"%s\"", mimirRuleGroup.Name, mimirNamespace)
 					}
 				}
 			}
@@ -131,14 +131,14 @@ func (r *PrometheusRuleSyncReconciler) Reconcile(ctx context.Context, req ctrl.R
 		for ruleGroupName, actualRuleGroup := range actualMimirRuleGroupsByName {
 			if _, found := mimirRuleGroups[ruleGroupName]; !found {
 				// Rule group is not present in the PrometheusRuleSync so it needs to be deleted
-				if _, err := r.MimirRulerClient.DeleteRuleGroup(mimirTenant, mimirNamespace, actualRuleGroup.Name); err != nil {
+				if out, err := r.MimirRulerClient.DeleteRuleGroup(mimirTenant, mimirNamespace, actualRuleGroup.Name); err != nil {
 					unsuccessfulDeleteByRuleGroupName[actualRuleGroup.Name] = err.Error()
 					log.Error(err, "Failed to delete rule in Mimir", "tenant", mimirTenant, "namespace", prometheusRuleSync.Namespace, "name", prometheusRuleSync.Name)
-					r.Recorder.Eventf(prometheusRuleSync, "Warning", "DeleteRuleGroupFailed", "Failed to delete RuleGroup %s in Mimir namespace %s: %s", actualRuleGroup.Name, mimirNamespace, err.Error())
+					r.Recorder.Eventf(prometheusRuleSync, "Warning", "DeleteRuleGroupFailed", "Failed to delete RuleGroup %s in Mimir namespace \"%s\"\n%s\n%s", actualRuleGroup.Name, mimirNamespace, err.Error(), out)
 				} else {
 					successfulDeleteByRuleGroupName[actualRuleGroup.Name] = "OK"
 					log.Info("Rule was deleted in Mimir", "tenant", mimirTenant, "namespace", prometheusRuleSync.Namespace, "name", prometheusRuleSync.Name)
-					r.Recorder.Eventf(prometheusRuleSync, "Normal", "DeleteRuleGroupSuccess", "RuleGroup %s was deleted in Mimir namespace %s", actualRuleGroup.Name, mimirNamespace)
+					r.Recorder.Eventf(prometheusRuleSync, "Normal", "DeleteRuleGroupSuccess", "RuleGroup %s was deleted in Mimir namespace \"%s\"", actualRuleGroup.Name, mimirNamespace)
 				}
 			}
 		}
@@ -182,13 +182,13 @@ func (r *PrometheusRuleSyncReconciler) Reconcile(ctx context.Context, req ctrl.R
 		// The object is being deleted
 		if controllerutil.ContainsFinalizer(prometheusRuleSync, Finalizer) {
 			// Delete the Mimir namespace
-			if _, err := r.MimirRulerClient.DeleteNamespace(mimirTenant, mimirNamespace); err != nil {
-				log.Error(err, "Failed to delete Mimir namespace", "tenant", mimirTenant, "namespace", prometheusRuleSync.Namespace, "name", prometheusRuleSync.Name)
-				r.Recorder.Eventf(prometheusRuleSync, "Warning", "DeleteNamespaceFailed", "Failed to delete Mimir namespace %s: %s", mimirNamespace, err.Error())
+			if out, err := r.MimirRulerClient.DeleteNamespace(mimirTenant, mimirNamespace); err != nil {
+				log.Error(err, fmt.Sprintf("Failed to delete Mimir namespace \"%s\"", mimirNamespace), "tenant", mimirTenant, "namespace", prometheusRuleSync.Namespace, "name", prometheusRuleSync.Name)
+				r.Recorder.Eventf(prometheusRuleSync, "Warning", "DeleteNamespaceFailed", "Failed to delete Mimir namespace \"%s\"\n%s\n%s", mimirNamespace, err.Error(), out)
 				return ctrl.Result{}, err
 			}
 
-			log.Info("Mimir namespace deleted", "tenant", mimirTenant, "namespace", prometheusRuleSync.Namespace, "name", prometheusRuleSync.Name)
+			log.Info(fmt.Sprintf("Mimir namespace \"%s\" was deleted", mimirNamespace), "tenant", mimirTenant, "namespace", prometheusRuleSync.Namespace, "name", prometheusRuleSync.Name)
 
 			// Remove finalizer
 			controllerutil.RemoveFinalizer(prometheusRuleSync, Finalizer)
@@ -260,6 +260,7 @@ func buildClientMimirRule(rules []v1alpha1.Rule) []mimirrulerclient.MimirRule {
 	mimirRules := make([]mimirrulerclient.MimirRule, len(rules))
 	for i, rule := range rules {
 		mimirRules[i] = mimirrulerclient.MimirRule{
+			Record:      rule.Record,
 			Alert:       rule.Alert,
 			Expr:        rule.Expr,
 			For:         rule.For,

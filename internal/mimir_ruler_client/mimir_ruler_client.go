@@ -142,26 +142,25 @@ func (client *MimirRulerClient) SetRuleGroup(tenant, namespace string, ruleGroup
 }
 
 // GetNamespaceRuleGroups gets all rule groups in a namespace from the Mimir Ruler API
-func (ruler *MimirRulerClient) GetNamespaceRuleGroups(tenant, namespace string) ([]MimirRuleGroup, error) {
-	requestURL := fmt.Sprintf("/config/v1/rules/%s", namespace)
-	request, err := ruler.buildRequest(http.MethodGet, requestURL, tenant, "application/yaml", "", nil)
+func (ruler *MimirRulerClient) GetNamespaceRuleGroups(tenant, namespace string) ([]MimirRuleGroup, string, error) {
+	request, err := ruler.buildRequest(http.MethodGet, "/config/v1/rules", tenant, "application/yaml", "", nil)
 	if err != nil {
-		return []MimirRuleGroup{}, err
+		return []MimirRuleGroup{}, "", err
 	}
 	statusCode, out, err := ruler.makeRequest(request)
 	if !(statusCode >= 200 && statusCode <= 299) || (err != nil) {
-		return []MimirRuleGroup{}, fmt.Errorf("%d GET %s\n%s", statusCode, request.URL, out)
+		return []MimirRuleGroup{}, out, fmt.Errorf("%d GET %s\n%s", statusCode, request.URL, out)
 	}
 	namespaceRules := MimirRuleGroupsByNamespace{}
 	err = yaml.Unmarshal([]byte(out), &namespaceRules)
 	if err != nil {
-		return []MimirRuleGroup{}, err
+		return []MimirRuleGroup{}, "", err
 	}
 	// The API returns always empty yaml even if the namespace is not found
 	if rules, found := namespaceRules[namespace]; found {
-		return rules, err
+		return rules, "", err
 	}
-	return []MimirRuleGroup{}, nil
+	return []MimirRuleGroup{}, "", nil
 }
 
 // DeleteRuleGroup deletes a rule group from the Mimir Ruler API
